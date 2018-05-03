@@ -1,0 +1,14 @@
+function sim_slopeCoupling_simple
+
+addpath '../utils';
+addpath '../blr';
+
+
+loopVars.tasks                        	= 50; %200;    
+loopVars.observationNoises            	= 1; %[1 2 4 8];
+loopVars.biomarkerNoises             	= 1;
+loopVars.numRngs                      	= 0;
+
+%saveFilename                            = '~/Documents/MATLAB/sim_slopeCoupling_200_varyObsNoise.mat';
+saveFilename = 'C:\Users\test\Dropbox\neuro\out_blr_sim\sim_slopeCoupling_200_varyObsNoise.mat';
+loopParams(saveFilename, loopVars, @generatePredictionStructure_slopes, 'slope');
