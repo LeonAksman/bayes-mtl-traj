@@ -27,4 +27,4 @@ sim_both_quick
 This will build eight models ten times for the four noise levels and two scenarios for fewer subjects (8 x 10 x 4 x 2 = 640 for 100 subjects). It should run in minutes rather than hours. 
 
 
-If you want to replicate our ADNI results, you need to have ([access to the ADNI dataset] http://adni.loni.usc.edu/data-samples/access-data/). Once you do, I can send you the necessary data and code. Contact: l.aksman@ucl.ac.uk.
+If you want to replicate our ADNI results, you need to have [access to the ADNI dataset] (http://adni.loni.usc.edu/data-samples/access-data/). Once you do, I can send you the necessary data and code. Contact: l.aksman@ucl.ac.uk.
