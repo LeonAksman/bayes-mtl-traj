@@ -1,10 +1,15 @@
 # Parametric Bayesian multi-task learning for modeling biomarker trajectories
 
 
-
 The code from our "Modeling longitudinal biomarkers with parameteric Bayesian multi-task learning" paper.
 
-You can run the simulations described in the paper via:
+Here's a simple example that you can run and modify:
+
+```bash
+simple_example
+```
+
+You can also run the simulations described in the paper via:
 
 ```bash
 sim_both_full
