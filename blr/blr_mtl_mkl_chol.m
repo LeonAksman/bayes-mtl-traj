@@ -1,42 +1,38 @@
 function [varargout] = blr_mtl_mkl_chol(hyp, X, t, nTasks, numBlocks, extraKernels, xs)
 
-% Bayesian linear regression: multi-task learning (MTL) version
-%
-% This version uses the Cholesky Decomposition based approach to inverting
-% matrices
+% A Bayesian linear regression based approach to multi-task learning with multi-kernel based coupling.
+% Computations use Cholesky factorizations instead of matrix inverses in this version.
 %
 % ***************************************
 % Assumed covariance prior structure: 
 %
-%    1/alpha * kron(gamma * eye(nTasks) + (1 - gamma) * ones(nTasks)), eye(nDims))  
+%   alpha1 * eye + sum_i ( kron(sigma_ci, M_ii) )
 %
-% where: alpha > 0,  0 < gamma < 1
+% where: sigma_ci = alpha_i1 * eye(n) + alpha_i2 * ones(n) + sum_j ( alpha_i(j+2) K(j) )
+%        M_ii has one in (i, i)th element, zero otherwise
 % ***************************************
 %
 % Fits a bayesian linear regression model, where the inputs are:
-%    hyp : vector of hyperparmaters. hyp = [log(beta); log(alpha); logit(gamma)]
-%    X   : N     x (nTasks * nDims)  data matrix
-%    t   : N     x 1                 vector of targets across all tasks
-%    xs  : Ntest x (nTasks * nDims)  matrix of test cases
+%    hyp          : vector of hyperparmaters. hyp = [log(beta); log(alpha); logit(gamma)]
+%    X            : N     x D                 data matrix
+%    t            : N     x 1                 vector of targets across all tasks
+%    nTasks       : number of tasks (e.g. subjects)
+%    numBlocks    : the number of dimensions in each task's model, so that D = nTasks * numBlocks
+%    extraKernels : a structure for the coupling kernels K in the prior
+%    xs           : Ntest x (nTasks * nDims)  matrix of test cases
 % 
 %  where N = sum(N_i), N_i is number of targets per task
 %
-% The hyperparameter beta is the noise precision and alpha is the precision
-% over lengthscale parameters. This can be either a scalar variable (a
-% common lengthscale for all input variables), or a vector of length D (a
-% different lengthscale for each input variable, derived using an automatic
-% relevance determination formulation).
 %
 % Two modes are supported: 
-%    [nlZ, dnlZ, post] = blr(hyp, x, y);  % report evidence and derivatives
-%    [mu, s2, post]    = blr(hyp, x, y, xs); % predictive mean and variance
+%    [nlZ, dnlZ, post] = blr_mtl_mkl_chol(hyp, x, t, ...);      % report evidence and derivatives
+%    [mu, s2, post]    = blr_mtl_mkl_chol(hyp, x, t, ..., xs);  % predictive mean and variance
 %
-% Written by A. Marquand
-% Updated by L. Aksman for new parameterization of prior covariance that enables multi-task + multi-kernel learning
+% Written by L.Aksman based on code provided by A. Marquand
 
 if nargin<6 || nargin>7
-    disp('Usage: [nlZ dnlZ] = blr_mtl_mkl_flex(hyp, X, t, nTasks, nDimsPerTask, extraKernels);')
-    disp('   or: [mu  s2  ] = blr_mtl_mkl_flex(hyp, X, t, nTasks, nDimsPerTask, extraKernels, xs);')
+    disp('Usage: [nlZ dnlZ] = blr_mtl_mkl_chol(hyp, X, t, nTasks, nDimsPerTask, extraKernels);')
+    disp('   or: [mu  s2  ] = blr_mtl_mkl_chol(hyp, X, t, nTasks, nDimsPerTask, extraKernels, xs);')
     return
 end
 
