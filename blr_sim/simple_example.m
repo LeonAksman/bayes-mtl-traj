@@ -5,41 +5,29 @@ function simple_example
 addpath '../utils';
 addpath '../blr';
 
-if nargin < 1
-    modelOutfile            = '';
-end
-
-if ~isempty(modelOutfile) && fileExist(modelOutfile)
-    dispf('Found %s, loading models from file.', modelOutfile);
-    load(modelOutfile);
-    plot_models(models);
-    return;
-else
-    dispf('Failed to find %s, recomputing models.', modelOutfile);
-end
-
+%generate some trajectories for 200 subjects
 n_tasks                         = 200;
-
 [predictStruct, traj_coeffs]    = generatePredictionStructure(n_tasks, 8);
 
+%generate the Gaussian similarity kernel based on the intercepts
 intercepts                      = traj_coeffs(:, 1);
 slopes                          = traj_coeffs(:, 2);
 similarityKernel                = squareform(pdist(intercepts, 'squaredeuclidean'));
 
-%***** random
+%generate a random similarity kernel
 rng(1);
 randvec                         = rand(n_tasks, 1);
 random_gauss                    = squareform(pdist(randvec, 'squaredeuclidean'));
 random_gauss                    = random_gauss / norm(random_gauss);
 
+%generate a linear similarity kernel
 similarityKernel_linear         = computeSimilarityKernel(intercepts); %using a noiseless biomarker here
 kernelSubjectIds                = unique(predictStruct.subj_id);
 
-%*************** default params
-MIN_SAMPLES_TRAINING            = 2;
+%*************** common params for all models
 commonParams.P                  = 1;
 commonParams.mode               = 'predict_last';
-commonParams.minTrainingSamples = MIN_SAMPLES_TRAINING;
+commonParams.minTrainingSamples = 2;
 commonParams.extraKernels       = [];
 commonParams.f_blr              = @blr_mtl_mkl_inv;
 commonParams.f_optimizer      	= @minimize;
@@ -50,9 +38,8 @@ commonParams.kernelSubjectIds   = kernelSubjectIds;
 %**************** specify models
 models                          = [];
 
-clear model;
-
 %random gaussian based kernel
+clear model;
 model.name               	= 'random';
 model.params              	= commonParams;
 model.params.extraKernels(1).mat        = random_gauss;
@@ -61,6 +48,7 @@ model.params.extraKernels(1).bound    	= 'positive';
 models                      = [models; model];
 
 %linear kernel based coupling
+clear model;
 model.name               	= 'linear kernel coupled';
 model.params              	= commonParams;
 model.params.extraKernels(1).mat        = similarityKernel_linear;
@@ -69,6 +57,7 @@ model.params.extraKernels(1).bound    	= 'positive';
 models                      = [models; model];
 
 %gaussian kernel based coupling
+clear model;
 model.name               	= 'gaussian kernel coupled';
 model.params              	= commonParams;
 model.params.extraKernels(1).mat        = similarityKernel;
@@ -77,6 +66,7 @@ model.params.extraKernels(1).bound    	= 'positive';
 models                      = [models; model];
 
 %multi-kernel: linear plus gaussian kernels
+clear model;
 model.name               	= 'multi';
 model.params              	= commonParams;
 model.params.extraKernels(1).mat        = similarityKernel_linear;
@@ -125,7 +115,7 @@ for i = 1:length(models)
 end
 
 plot_models(models, SCALE_MAE);
-compare_models(models);
+%compare_models(models);
 
 
 %***************************************************************
