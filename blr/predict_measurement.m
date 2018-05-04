@@ -2,8 +2,8 @@ function [modelOutput, modelData] = predict_measurement(rawData, model, measurem
 
 
 addpath '../utils';
-%addpath(genpath('../PRoNTo_v.1.1_r740/machines/gpml/gpml-v3.1'));
-addpath(genpath('../gpml-matlab-v4.0-2016-10-19/util'));
+addpath(genpath('../PRoNTo_v.1.1_r740/machines/gpml/gpml-v3.1'));
+%addpath(genpath('../gpml-matlab-v4.0-2016-10-19/util'));
 
 
 if nargin < 4 
@@ -33,13 +33,6 @@ assert(isequal(unique_subj_ids, params.kernelSubjectIds));
 isEmpty                                     = zeros(n_tasks, 1);             %deal with empty test data (subject only used for training)
 
 [nSamples_train, nSamples_test]             = deal(zeros(n_tasks, 1));
-
-%*** normalize the age
-%rawData.age                     = rawData.age     ./ (2 * std(rawData.age)); %(rawData.age     - mean(rawData.age))     ./ std(rawData.age);
-%rawData.age_raw              	= rawData.age_raw ./ (2 * std(rawData.age_raw)); %(rawData.age_raw - mean(rawData.age_raw)) ./ std(rawData.age_raw);
-
-% rawData.age         = rawData.age     - min(rawData.age);
-% rawData.age_raw     = rawData.age_raw - min(rawData.age_raw);
 
 for i = 1:n_tasks
     

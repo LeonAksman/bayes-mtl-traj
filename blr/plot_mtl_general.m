@@ -1,15 +1,15 @@
-function plot_mtl_general(data, figureNum, superLabel, scale, inputTrainColor, inputTestColor)
+function plot_mtl_general(data, figureNum, superLabel, scale)%, inputTrainColor, inputTestColor)
 
 addpath '../utils';
 
 SCALE_MAE                       = scale; 
 
-if nargin < 5
-    inputTrainColor             = 'b';
-end
-if nargin < 6
-    inputTestColor              = 'r';
-end
+% if nargin < 5
+%     inputTrainColor             = 'b';
+% end
+% if nargin < 6
+%     inputTestColor              = 'r';
+% end
 
 if ishandle(figureNum)
     close(figureNum);
@@ -39,8 +39,8 @@ for i = 1:n
     title(sprintf('"%s"  MAE: %.2f, Relative Error: %.2f%%    %s', name_i, data_i.mae_mtl * SCALE_MAE, data_i.relErr_mtl, additionalString));
 
     hold on;
-    plot_local(train_cell,        train_cell,         data_i.designMat_cell,        ['-' inputTrainColor '.']);
-    plot_local(targetsTest_cell,  estimates_cell_mtl, data_i.designMatTest_cell,    ['-' inputTrainColor '.']);
+    plot_local(train_cell,        train_cell,         data_i.designMat_cell,        '-b.');
+    plot_local(targetsTest_cell,  estimates_cell_mtl, data_i.designMatTest_cell,    '-r.');
     hold off;
     
     %**** add independent model at the bottom
@@ -59,8 +59,8 @@ for i = 1:n
         title(sprintf('"Independent"  MAE: %.2f, Relative Error: %.2f%%    %s', data_i.mae_indep * SCALE_MAE, data_i.relErr_indep, additionalString));
 
         hold on;
-        plot_local(train_cell,        train_cell,           data_i.designMat_cell,       ['-' inputTrainColor '.']);  % '.');
-        plot_local(targetsTest_cell,  estimates_cell_indep, data_i.designMatTest_cell,   ['-' inputTestColor  '.']);  % '.');
+        plot_local(train_cell,        train_cell,           data_i.designMat_cell,       '-b.'); 
+        plot_local(targetsTest_cell,  estimates_cell_indep, data_i.designMatTest_cell,   '-r.');  
         hold off;
     end
 end
