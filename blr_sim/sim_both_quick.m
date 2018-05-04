@@ -7,7 +7,7 @@ addpath '../blr';
 loopVars.tasks                        	= 100;        	%number of tasks (number of subjects in multi-task trajectory modeling)   
 loopVars.observationNoises            	= [1 2 4 8];    %measurement noise standard deviation
 loopVars.biomarkerNoises             	= 1;            %biomarker noise standard deviation
-loopVars.numRngs                      	= 2;%10;           %number of simulation runs, each a random sampling of trajectories
+loopVars.numRngs                      	= 10;           %number of simulation runs, each a random sampling of trajectories
 
 saveFile_int                            = '../out_blr_sim/int_quick.mat';
 saveFile_slope                       	= '../out_blr_sim/slope_quick.mat';
