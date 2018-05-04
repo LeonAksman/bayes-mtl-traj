@@ -4,7 +4,7 @@
 
 The code from our "Modeling longitudinal biomarkers with parameteric Bayesian multi-task learning" paper.
 
-You can run the simualations described in the paper via:
+You can run the simulations described in the paper via:
 
 ```bash
 sim_both_full
