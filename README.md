@@ -1,12 +1,11 @@
 # Parametric Bayesian multi-task learning for modeling biomarker trajectories
 
-# Description
 The code from our "Modeling longitudinal biomarkers with parameteric Bayesian multi-task learning" paper.
 
-# Directories
+## Directories
 The blr_sim directory contains the top-level files used for simulations, while the blr directory contains most of the model training, test and performance assessment code. utils contains some basic utility functions.
 
-# Simple example
+## Simple example
 
 Within the blr_sim directory is a simple example that you can run and modify:
 
@@ -15,7 +14,7 @@ simple_example
 ```
 
 
-# Simulations
+## Simulations
 
 You can also run the simulations described in our paper via:
 
