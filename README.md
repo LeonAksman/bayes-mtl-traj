@@ -1,19 +1,28 @@
 # Parametric Bayesian multi-task learning for modeling biomarker trajectories
 
+# Description
 The code from our "Modeling longitudinal biomarkers with parameteric Bayesian multi-task learning" paper.
 
-Here's a simple example that you can run and modify:
+# Directories
+The blr_sim directory contains the top-level files used for simulations, while the blr directory contains most of the model training, test and performance assessment code. utils contains some basic utility functions.
+
+# Simple example
+
+Within the blr_sim directory is a simple example that you can run and modify:
 
 ```bash
 simple_example
 ```
 
-You can also run the simulations described in the paper via:
+
+# Simulations
+
+You can also run the simulations described in our paper via:
 
 ```bash
 sim_both_full
 ```
-This will generate a couple of intermediate files for you in the out_blr_sim directory along with two figures (from the paper) that show mean absolute error (MAE) and parameter inference related metrics across the 50 simulation runs and 2 simulation scenarios (intercept-coupled and slope-coupled trajectories). 
+This will generate a couple of intermediate files for you in the out_blr_sim directory along with two figures (from the paper) that show mean absolute error (MAE) and parameter inference related metrics across the 50 simulation runs and 2 simulation scenarios (intercept-variation and slope-variation in subjects' trajectories). 
 
 This above command will take at least a few hours to run as it's building eight coupled models fifty times for four different noise levels, across two simulation scenarios (8 x 50 x 4 x 2 = 3,200 models for 200 subjects). 
 
