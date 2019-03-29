@@ -1,15 +1,8 @@
-function plot_mtl_general(data, figureNum, superLabel, scale)%, inputTrainColor, inputTestColor)
+function plot_mtl_new(model, field, figureNum, superLabel, scale)
 
 addpath '../utils';
 
 SCALE_MAE                       = scale; 
-
-% if nargin < 5
-%     inputTrainColor             = 'b';
-% end
-% if nargin < 6
-%     inputTestColor              = 'r';
-% end
 
 if ishandle(figureNum)
     close(figureNum);
@@ -21,7 +14,6 @@ n                               = length(data);
 
 for i = 1:n
     
-    name_i                      = data(i).name;
     data_i                      = data(i).out;
     
     train_cell                  = data_i.targets_cell;

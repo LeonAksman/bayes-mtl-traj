@@ -1,34 +1,39 @@
-function [varargout] = blr_mtl_mkl_inv(hyp, X, t, nTasks, numBlocks, extraKernels, xs)
+function [varargout] = blr_mtl_mkl_inv_fast(hyp, X, t, nTasks, numBlocks, extraKernels, xs)
 
-% A Bayesian linear regression based approach to multi-task learning with multi-kernel based coupling.
-% Computations use matrix inverses in this version.
+% Bayesian linear regression: multi-task learning (MTL) version
+%
+% This version uses the Cholesky Decomposition based approach to inverting
+% matrices
 %
 % ***************************************
 % Assumed covariance prior structure: 
 %
-%   alpha1 * eye + sum_i ( kron(sigma_ci, M_ii) )
+%    1/alpha * kron(gamma * eye(nTasks) + (1 - gamma) * ones(nTasks)), eye(nDims))  
 %
-% where: sigma_ci = alpha_i1 * eye(n) + alpha_i2 * ones(n) + sum_j ( alpha_i(j+2) K(j) )
-%        M_ii has one in (i, i)th element, zero otherwise
+% where: alpha > 0,  0 < gamma < 1
 % ***************************************
 %
 % Fits a bayesian linear regression model, where the inputs are:
-%    hyp          : vector of hyperparmaters. hyp = [log(beta); log(alpha); logit(gamma)]
-%    X            : N     x D                 data matrix
-%    t            : N     x 1                 vector of targets across all tasks
-%    nTasks       : number of tasks (e.g. subjects)
-%    numBlocks    : the number of dimensions in each task's model, so that D = nTasks * numBlocks
-%    extraKernels : a structure for the coupling kernels K in the prior
-%    xs           : Ntest x (nTasks * nDims)  matrix of test cases
+%    hyp : vector of hyperparmaters. hyp = [log(beta); log(alpha); logit(gamma)]
+%    X   : N     x (nTasks * nDims)  data matrix
+%    t   : N     x 1                 vector of targets across all tasks
+%    xs  : Ntest x (nTasks * nDims)  matrix of test cases
 % 
 %  where N = sum(N_i), N_i is number of targets per task
 %
+% The hyperparameter beta is the noise precision and alpha is the precision
+% over lengthscale parameters. This can be either a scalar variable (a
+% common lengthscale for all input variables), or a vector of length D (a
+% different lengthscale for each input variable, derived using an automatic
+% relevance determination formulation).
 %
 % Two modes are supported: 
-%    [nlZ, dnlZ, post] = blr_mtl_mkl_inv(hyp, x, t, ...);      % report evidence and derivatives
-%    [mu, s2, post]    = blr_mtl_mkl_inv(hyp, x, t, ..., xs);  % predictive mean and variance
+%    [nlZ, dnlZ, post] = blr(hyp, x, y);  % report evidence and derivatives
+%    [mu, s2, post]    = blr(hyp, x, y, xs); % predictive mean and variance
 %
-% Written by L.Aksman based on code provided by A. Marquand
+% Written by A. Marquand
+% Updated by L. Aksman for new parameterization of prior covariance that enables multi-task + multi-kernel learning
+
 if nargin<6 || nargin>7
     disp('Usage: [nlZ dnlZ] = blr_mtl_mkl_flex(hyp, X, t, nTasks, nDimsPerTask, extraKernels);')
     disp('   or: [mu  s2  ] = blr_mtl_mkl_flex(hyp, X, t, nTasks, nDimsPerTask, extraKernels, xs);')
@@ -50,11 +55,11 @@ else
 end
 
 %initialize hyperparameter vector to correct size
-% if isempty(hyp)
-%     nHyp          	= 2 + (2 + nKernels + numInternalHypers) * numBlocks;     	%beta + alpha_diag + (alpha1, alpha2 + kernel weights) x number of blocks
-%     hyp           	= zeros(nHyp, 1);
-% end
-
+if isempty(hyp)
+    nHyp          	= 2 + (2 + nKernels + numInternalHypers) * (P + 1) ;     	%beta + alpha_diag + (alpha1, alpha2 + kernel weights) x number of blocks
+    hyp           	= zeros(nHyp, 1);
+end
+    
 [N, D]              = size(X);
 [dSigmas, dHypers] 	= deal({});
 
@@ -78,7 +83,7 @@ currPos             = 3; %2
 numHypsPerBlock     = 2 + nKernels + numInternalHypers;
 
 
-Sigma               = alpha_diag * kron(eye(nTasks), eye(numBlocks)); %zeros(D, D);
+Sigma               = zeros(D, D);
 
 for i = 1:numBlocks
     
@@ -116,7 +121,9 @@ for i = 1:numBlocks
 
                 dSigmas{end+1} 	= kron(kernel_j,  delta_i);
                 dHypers{end+1} 	= alpha_kernel_j; 
-            
+                
+                coupling_i    	= coupling_i + alpha_kernel_j * kernel_j;
+                
             case 'gaussian'
                 alpha_kernel_j  = exp_hyps_i(currHyp);      
                 currHyp         = currHyp + 1;
@@ -125,7 +132,6 @@ for i = 1:numBlocks
                 currHyp         = currHyp + 1;
 
                 kernel_j        = exp(-sigma_j * mat_j);    
-                %kernel_j        = exp(-mat_j/(sigma_j^2));    
                 
                 %*** external hyper
                 dSigmas{end+1} 	= kron(kernel_j,  delta_i);
@@ -134,18 +140,18 @@ for i = 1:numBlocks
                 %*** internal hyper
                 r_squared       = mat_j;
                 dSigmas{end+1} 	= kron(-alpha_kernel_j * r_squared .* kernel_j, delta_i);
-                %dSigmas{end+1} 	= kron(2 * alpha_kernel_j * r_squared .* kernel_j ./ (sigma_j^3), delta_i);
                 dHypers{end+1}  = sigma_j;
                                 
-        end 
-        
-        assert(~any(isnan(kernel_j(:))), sprintf('kernel %d has NaNs in it', j));
-        coupling_i              = coupling_i + alpha_kernel_j * kernel_j;
-
+                coupling_i    	= coupling_i + alpha_kernel_j * kernel_j;
+        end       
     end    
     
     Sigma                       = Sigma + kron(coupling_i, delta_i);
 end
+
+%some random noise here!
+%xxx                             = rand(nTasks*numBlocks, 1);
+Sigma                           = Sigma + alpha_diag * kron(eye(nTasks), eye(numBlocks)); %Sigma + alpha_diag * diag(xxx);           %
 
 %add in extra diagnoal term for outliers
 if nKernels > 0 && any(strcmp({extraKernels.type}, 'outlier'))
@@ -159,6 +165,7 @@ end
 % useful quantities
 XX                  = X'*X;
 
+%***************************** MOVED DOWN
 cholSigma           = chol(Sigma); %** upper triagle
 
 switch VERSION
@@ -197,13 +204,13 @@ end
 if nargin == 6
 
     switch VERSION
-        case 'chol' 
+        case 'chol'
             invSigma_m      = solve_chol(cholSigma, m);
         case 'inverse'
             invSigma_m      = invSigma * m;
     end
     
-    nlZ_const       = N*log(2*pi); %D*log(2*pi); %
+    nlZ_const       = D*log(2*pi); %N*log(2*pi);
     
     nlZ             = -0.5*( N*log(beta) - nlZ_const - logdetSigma ...
                       - beta*(t-X*m)'*(t-X*m) - m'* invSigma_m - ...
@@ -223,24 +230,53 @@ if nargin == 6
         % noise precision
         dnlZ(1)     = -( N/(2*beta) - 0.5*(t'*t) + t'*X*m + beta*t'*X*b - 0.5*m'*XXm ...
                       - beta*b'*XXm - b'*invSigma_m -0.5*trace(Q*X) )*beta; 
+        
                   
+        mat_size                    = size(dSigmas{1}, 1);
+        num_sigmas                  = length(dSigmas);
+        
+        dSigmas_mat                 = vertcat(dSigmas{:});
+        invSigma_dSigma_mat         = dSigmas_mat * invSigma;  
+        F_mat                       = (invSigma_dSigma_mat * -invSigma)';
+        
+        %dSigmas_mat                 = horzcat(dSigmas{:});
+        %invSigma_dSigma_mat         =  invSigma * dSigmas_mat;     
+        %F_mat                       = -invSigma * invSigma_dSigma_mat;
+        %F_mat                       = (invSigma_dSigma_mat' * -invSigma)';
+        %F_mat                       = -invSigma *  (vertcat(dSigmas{:}))';
+        %F_mat                       = invSigma_dSigma_mat' * -invSigma;
+        
+        %invSigma_mat                = repmat(invSigma, num_sigmas, 1);
+        %F_mat                       = -invSigma_mat .* invSigma_dSigma_mat;
+        
+        
+        %F_mat = -invSigma * reshape(invSigma_dSigma_mat', mat_size, length(dSigmas)*mat_size);
+        %invSigma_dSigma_mat_t       = invSigma_dSigma_mat';
+        %F_mat                       = -invSigma * reshape(invSigma_dSigma_mat_t(:), mat_size, mat_size * length(dSigmas));
+        %invSigma_dSigma_3mat        = reshape(invSigma_dSigma_mat, mat_size, mat_size, length(dSigmas));
+        %invSigma_dSigma_3mat        = permute(invSigma_dSigma_3mat, [2 1 3]);
+        %F_mat                       = -invSigma * reshape(invSigma_dSigma_3mat, mat_size, mat_size * length(dSigmas));
+        
         % variance parameters
         for i = 1:length(dSigmas)
             
-            dSigma_i 	= dSigmas{i};
             dHyper_i 	= dHypers{i};
                         
 
             switch VERSION
                 case 'chol'
+                    dSigma_i            = dSigmas{i};
                     invSigma_dSigma  	=  solve_chol(cholSigma, dSigma_i);
                     F                   = -solve_chol(cholSigma, invSigma_dSigma')';
                 case 'inverse'
-                    invSigma_dSigma  	=  invSigma * dSigma_i;
-                    F                   = -invSigma * invSigma_dSigma'; %-solve_chol(cholSigma, invSigma_dSigma')';
-            end           
-            %invSigma_dSigma  	=  solve_chol(cholSigma, dSigma_i);
-            %F                   = -solve_chol(cholSigma, invSigma_dSigma')';
+%                     invSigma_dSigma  	=  invSigma * dSigma_i;
+%                     F                   = -invSigma * invSigma_dSigma'; 
+
+                    index_i             = (mat_size*(i-1) + 1):(mat_size*i);
+                    invSigma_dSigma     = invSigma_dSigma_mat(:, index_i);
+                    F                   = F_mat(:, index_i); %-invSigma * invSigma_dSigma'; %
+                    
+            end            
             
             c    	= -beta*S*F*SXt;
             
@@ -250,7 +286,7 @@ if nargin == 6
             
         end   
         
-        post.beta  	= beta;
+        post.beta   = beta;
         post.m      = m;
         post.invA   = invA;
     end
@@ -263,30 +299,12 @@ if nargin == 6
 else % prediction mode
       
     ys              = xs*m;
-    
-    numSamples      = size(xs, 1);
-    if numSamples > 1000
-        %do it in chunks
-        chunkSize   = 1000;
-        numChunks   = round(numSamples/chunkSize);
-        
-        s2          = zeros(numSamples, 1);
-        for i = 1:numChunks
-            if i < numChunks
-                index_i = ((i-1)*chunkSize + 1):(i*chunkSize);
-            else
-                index_i = ((i-1)*chunkSize + 1):numSamples;
-            end
-            s2(index_i) = 1/beta + diag(xs(index_i, :)*(invA * xs(index_i, :)'));
-        end
-        
-    else
-        s2        	= 1/beta + diag(xs*(invA * xs'));
-    end
+    s2              = 1/beta + diag(xs*(invA * xs'));
     
     post.beta       = beta;
     post.m          = m;
     post.invA       = invA;
+    
     varargout       = {ys, s2, post};
 end
 

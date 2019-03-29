@@ -100,15 +100,15 @@ out.targetsTest_cell            = targetsTest_cell;
 %********** new
 nSamples_test_mod           = nSamples_test;
 nSamples_test_mod(nSamples_test == 0) = 1;
-estimates_cell_mtl         	= toTasksCell(estimatesVec_mtl,    nSamples_test_mod);  %nSamples_test);
+estimates_cell_mtl         	= toTasksCell(estimatesVec_mtl,         nSamples_test);      %nSamples_test_mod);  %
 estimatesVec_mtl_nz       	= estimates_cell_mtl(~isEmpty); 
 estimatesVec_mtl_nz         = vertcat(estimatesVec_mtl_nz{:});
 %***var
-estimatesCell_mtl_var    	= toTasksCell(estimatesVec_mtl_var,    nSamples_test_mod);  %nSamples_test);
+estimatesCell_mtl_var    	= toTasksCell(estimatesVec_mtl_var,     nSamples_test);  %nSamples_test_mod);  %
 estimatesVec_mtl_var_nz    	= estimatesCell_mtl_var(~isEmpty); 
 estimatesVec_mtl_var_nz    	= vertcat(estimatesVec_mtl_var_nz{:});
 
-estimates_cell_indep        = toTasksCell(estimatesVec_indep, 	nSamples_test_mod);%nSamples_test);
+estimates_cell_indep        = toTasksCell(estimatesVec_indep,       nSamples_test);     %nSamples_test_mod);%
 estimatesVec_indep_nz     	= estimates_cell_indep(~isEmpty); 
 estimatesVec_indep_nz     	= vertcat(estimatesVec_indep_nz{:});
 
