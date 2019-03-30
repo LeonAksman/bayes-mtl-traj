@@ -9,6 +9,27 @@ addpath '../blr';
 n_tasks                         = 200;
 [predictStruct, traj_coeffs]    = generatePredictionStructure(n_tasks, 8);
 
+% training/testing indices cells
+numTestSamples                  = 1;
+[uniqueSubjects, index_first]     	= unique(predictStruct.subj_id, 'first');
+nUniqueSubjects                     = length(uniqueSubjects);
+[indicesCell_train, ...
+ indicesCell_test]                  = deal(cell(nUniqueSubjects, 1));
+[nTrain_vec, age_bl]              	= deal(zeros(nUniqueSubjects, 1));
+for i = 1:nUniqueSubjects 
+    index_i                         = find(predictStruct.subj_id == uniqueSubjects(i));
+    n_i                             = length(index_i);
+  
+    %must be some data for training
+  	assert(n_i  > numTestSamples);
+  
+    indicesCell_train{i}          	= index_i(1:(n_i  - numTestSamples));
+	indicesCell_test{i}          	= index_i((n_i  - numTestSamples + 1):n_i);
+    
+    nTrain_vec(i)                   = length(indicesCell_train{i});
+    age_bl(i)                       = predictStruct.age(index_i(1));
+end
+
 %generate the Gaussian similarity kernel based on the intercepts
 intercepts                      = traj_coeffs(:, 1);
 slopes                          = traj_coeffs(:, 2);
@@ -29,7 +50,12 @@ commonParams.P                  = 1;
 commonParams.mode               = 'predict_last';
 commonParams.minTrainingSamples = 2;
 commonParams.extraKernels       = [];
-commonParams.f_blr              = @blr_mtl_mkl_inv;
+commonParams.normDesignMatrix  	= true;
+commonParams.normTargets        = true;
+commonParams.f_train            = @train_mtl;
+commonParams.f_predict        	= @predict_mtl;
+commonParams.f_eval             = @eval_mtl;
+commonParams.f_blr              = @blr_mtl_mkl_inv_reindex;
 commonParams.f_optimizer      	= @minimize;
 commonParams.maxeval            = -100;             %
 commonParams.standardize        = true;
@@ -86,19 +112,36 @@ models                      = [models; model];
 SCALE_MAE                  	= 1;
 
 %***** compute and plot
+% for i = 1:length(models)
+%     dispf('**** running model: %s', models(i).name);
+%     models(i).out          	= predict_blr_mtl_flex(predictStruct, models(i));
+%     dispf('**********************');
+%     
+% end
+% 
+%***** compute and plot
 for i = 1:length(models)
     dispf('**** running model: %s', models(i).name);
-    models(i).out          	= predict_blr_mtl_flex(predictStruct, models(i));
+    
+    %models(i).out          	= predict_blr_mtl_flex(predictStruct, models(i));
+    
+ 	[models(i).modelOutput,   ...
+     models(i).predictStruct, ...
+     models(i).evalOutput]      = runAnalysis(predictStruct, models(i), indicesCell_train, indicesCell_test); %runAnalysis_mtl
+    
     dispf('**********************');
     
 end
 
-for i = 1:length(models)
-    int_i                   = models(i).out.sim.post.m(1:2:end);
-    slope_i                 = models(i).out.sim.post.m(2:2:end);
-    
-    all_stds                = sqrt(models(i).out.sim.post.invA); %sqrt(diag(models(i).out.sim.post.invA));
 
+for i = 1:length(models)
+    int_i                   = models(i).modelOutput.sim.post.m(1:2:end);
+    slope_i                 = models(i).modelOutput.sim.post.m(2:2:end);
+    
+    all_stds                = sqrt(models(i).modelOutput.sim.post.invA); %sqrt(diag(models(i).out.sim.post.invA));
+    if ~isvector(all_stds)
+        all_stds            = diag(all_stds);
+    end
     NUM_STDS                = 2;
     
     %*** compute intercepts coverage: fraction of times intercept is within 2 stds of true value 
@@ -114,8 +157,7 @@ for i = 1:length(models)
                                                            sum(is_good_slope_i)/length(is_good_slope_i));
 end
 
-plot_models(models, SCALE_MAE);
-%compare_models(models);
+plot_models_new(models, SCALE_MAE);
 
 
 %***************************************************************
