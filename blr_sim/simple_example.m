@@ -4,6 +4,7 @@ function simple_example
 %
 addpath '../utils';
 addpath '../blr';
+addpath(genpath('../gpml-matlab-v4.0-2016-10-19'));
 
 %generate some trajectories for 200 subjects
 n_tasks                         = 200;
