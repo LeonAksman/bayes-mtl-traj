@@ -37,10 +37,10 @@ for i = 1:length(fieldNames)
         
         if      isfield(predStruct_ij, 'predictions_mtl')
             estimates_cell_i        = predStruct_ij.predictions_mtl;
-            mae_i                   = evalStruct_ij.mae_mtl;
+            mae_i                   = evalStruct_ij.mae;
         elseif isfield(predStruct_ij, 'predictions_lme')
             estimates_cell_i       	= predStruct_ij.predictions_lme;
-            mae_i                   = evalStruct_ij.mae_lme;
+            mae_i                   = evalStruct_ij.mae;
         else
             error('Cannot find MTL or LME predictions for model %d', j);
         end
@@ -66,7 +66,7 @@ for i = 1:length(fieldNames)
             
             subplot(n+1, 1, n+1);
 
-            title(sprintf('"Independent"  MAE: %.3f', evalStruct_ij.mae_ols * scale));
+            title(sprintf('"Independent"  MAE: %.3f', evalStruct_ij.mae * scale));
 
             hold on;
             %if isfield(data_i, 'designMat_cell') && isfield(data_i, 'designMatTest_cell')
