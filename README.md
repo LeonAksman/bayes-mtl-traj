@@ -1,6 +1,6 @@
 # Parametric Bayesian multi-task learning for modeling biomarker trajectories
 
-This model builds and tests longitudinal trajectory models for multiple subjects at once, allowing for information sharing (i.e. coupling) of subjects' models using biomarker similarity measures. This code is from our "Modeling longitudinal biomarkers with parameteric Bayesian multi-task learning" paper (under review) and OHBM 2018 [poster](https://files.aievolution.com/hbm1801/abstracts/32082/2254_Aksman.pdf). 
+This model builds and tests longitudinal trajectory models for multiple subjects at once, allowing for information sharing (i.e. coupling) of subjects' models using biomarker similarity measures. This code is from our "Modeling longitudinal biomarkers with parameteric Bayesian multi-task learning" paper ([preprint](https://www.biorxiv.org/content/10.1101/593459v1)) and OHBM 2018 [poster](https://files.aievolution.com/hbm1801/abstracts/32082/2254_Aksman.pdf). 
 
 ### Directories
 The blr_sim directory contains the top-level files used for simulations, while the blr directory contains most of the model training, prediction and performance assessment code. The gpml-matlab-v4.0-2016-10-19 directory from the [gpml toolbox](http://www.gaussianprocess.org/gpml/code/matlab/doc/) is used for hyperparameter optimization, the aboxplot directory from [Alex Bikfalvi](http://alex.bikfalvi.com/research/advanced_matlab_boxplot/) is used for making nice boxplots.  utils contains some basic utility functions.
