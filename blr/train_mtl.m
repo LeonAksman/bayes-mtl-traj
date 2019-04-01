@@ -63,7 +63,9 @@ else
 end
 
 % ******************** MTL Train
-assert(strcmp(func2str(params.f_blr), 'blr_mtl_mkl_inv') || strcmp(func2str(params.f_blr), 'blr_mtl_mkl_inv_reindex'));
+assert(strcmp(func2str(params.f_blr), 'blr_mtl_mkl_inv')            || ...
+       strcmp(func2str(params.f_blr), 'blr_mtl_mkl_inv_reindex')    || ...
+       strcmp(func2str(params.f_blr), 'blr_mtl_mkl_inv_split'));
 nHyp                        = 2 + (2 + numHyp_kernel(params.extraKernels)) * (P+1); 
 hyp                         = zeros(nHyp, 1);
 
@@ -73,7 +75,7 @@ paramsTraining.noiseMin     = 10e-6;
 passed                      = false;
 for i = 1:10
     try
-        [hyp, fX, i]       	= feval(f_optimizer, hyp, f_blr, maxeval, designMat_all, targets_all, paramsTraining, extraKernels);
+        [hyp, fX, numIters] = feval(f_optimizer, hyp, f_blr, maxeval, designMat_all, targets_all, paramsTraining, extraKernels);
         passed              = true;
     catch
         dispf('Model train failed with noiseMin parameter value: %f', paramsTraining.noiseMin);

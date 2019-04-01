@@ -1,4 +1,4 @@
-function [varargout] = blr_mtl_mkl_inv_split(hyp, X, t, nTasks, numBlocks, extraKernels, xs)
+function [varargout] = blr_mtl_mkl_inv_split(hyp, X, t, params, extraKernels, xs)
 
 % A Bayesian linear regression based approach to multi-task learning with multi-kernel based coupling.
 % Computations use matrix inverses in this version.
@@ -13,13 +13,13 @@ function [varargout] = blr_mtl_mkl_inv_split(hyp, X, t, nTasks, numBlocks, extra
 % ***************************************
 %
 % Fits a bayesian linear regression model, where the inputs are:
-%    hyp          : vector of hyperparmaters. hyp = [log(beta); log(alpha); logit(gamma)]
-%    X            : N     x D                 data matrix
-%    t            : N     x 1                 vector of targets across all tasks
-%    nTasks       : number of tasks (e.g. subjects)
-%    numBlocks    : the number of dimensions in each task's model, so that D = nTasks * numBlocks
-%    extraKernels : a structure for the coupling kernels K in the prior
-%    xs           : Ntest x (nTasks * nDims)  matrix of test cases
+%    hyp                : vector of hyperparmaters. hyp = [log(beta); log(alpha); logit(gamma)]
+%    X                  : N     x D                 data matrix
+%    t                  : N     x 1                 vector of targets across all tasks
+%    params.nTasks     	: number of tasks (e.g. subjects)
+%    params.numBlocks 	: the number of dimensions in each task's model, so that D = nTasks * numBlocks
+%    extraKernels       : a structure for the coupling kernels K in the prior
+%    xs                 : Ntest x (nTasks * nDims)  matrix of test cases
 % 
 %  where N = sum(N_i), N_i is number of targets per task
 %
@@ -30,9 +30,9 @@ function [varargout] = blr_mtl_mkl_inv_split(hyp, X, t, nTasks, numBlocks, extra
 %
 % Written by L.Aksman based on code provided by A. Marquand
 
-if nargin<6 || nargin>7
-    disp('Usage: [nlZ dnlZ] = blr_mtl_mkl_flex(hyp, X, t, nTasks, nDimsPerTask, extraKernels);')
-    disp('   or: [mu  s2  ] = blr_mtl_mkl_flex(hyp, X, t, nTasks, nDimsPerTask, extraKernels, xs);')
+if nargin<5 || nargin>6
+    disp('Usage: [nlZ dnlZ] = blr_mtl_mkl_flex(hyp, X, t, params, extraKernels, xs);')
+    disp('   or: [mu  s2  ] = blr_mtl_mkl_flex(hyp, X, t, params, extraKernels, xs);')
     return
 end
 
@@ -52,6 +52,9 @@ end
 
 [N, D]              = size(X);
 [dSigmas, dHypers] 	= deal({});
+
+nTasks              = params.nTasks;
+numBlocks        	= params.nBlocks;
 
 assert(D == nTasks * numBlocks);
 
@@ -203,7 +206,7 @@ switch VERSION
         logdetA  	= 2*sum(log(diag(cholA)));  
 end
 
-if nargin == 6
+if nargin == 5
 
     switch VERSION
         case 'chol'
@@ -262,7 +265,8 @@ if nargin == 6
                            0.5*m'*F*m - 0.5*trace(invA * F) ) * dHyper_i;         
             
         end   
-        
+
+        post.beta 	= beta;
         post.m      = m;
         post.invA   = invA;
     end

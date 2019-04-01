@@ -22,9 +22,12 @@ metrics_all                             = {};
 for i = 1:length(loopVars.tasks)
     for j = 1:length(loopVars.observationNoises)
         for k = 1:length(loopVars.biomarkerNoises)
-            [metrics.int,   ...   
-             metrics.slope, ...               
-             metrics.mae,   ...
+            [metrics.predCoverage,      ...
+             metrics.intCoverage,     	...   
+             metrics.slopeCoverage,   	... 
+             metrics.mae,               ...
+             metrics.intMae,          	...
+             metrics.slopeMae,        	...
              metrics.fRatio]                   = deal([]);
 
             for kk = 1:loopVars.numRngs
@@ -32,18 +35,25 @@ for i = 1:length(loopVars.tasks)
                 inParams_i.observationNoise     = loopVars.observationNoises(j);
                 inParams_i.biomarkerNoise      	= loopVars.biomarkerNoises(k);
                 inParams_i.rngSeed              = kk;
+                inParams_i.numTestSamples       = loopVars.numTestSamples;
+                
                 dispf('*********** tasks: %d, noise: %d, seed; %d', loopVars.tasks(i), loopVars.observationNoises(j), kk);
-                try
-                    [metrics_i, model_names]  	= computeModelMetrics(inParams_i, f_generatePredictionStructure, style);
-                catch
-                    dispf('Caught error: %s ********************', lasterr);
-                    continue;
-                end
+                %try
+              	[metrics_i, model_names]  	= computeModelMetrics(inParams_i, f_generatePredictionStructure, style);
+                %catch
+                %    dispf('Caught error: %s ********************', lasterr);
+                %    continue;
+                %end
 
-                metrics.int                 = [metrics.int;     metrics_i.int];
-                metrics.slope            	= [metrics.slope;   metrics_i.slope];
-                metrics.mae             	= [metrics.mae;     metrics_i.mae];
-                metrics.fRatio             	= [metrics.fRatio;	metrics_i.fRatio];
+                metrics.predCoverage        = [metrics.predCoverage;    metrics_i.predCoverage];
+                metrics.intCoverage       	= [metrics.intCoverage;   	metrics_i.intCoverage];
+                metrics.slopeCoverage      	= [metrics.slopeCoverage; 	metrics_i.slopeCoverage];
+                metrics.mae             	= [metrics.mae;             metrics_i.mae];
+                metrics.intMae              = [metrics.intMae;       	metrics_i.intMae];
+                metrics.slopeMae            = [metrics.slopeMae;      	metrics_i.slopeMae];
+                metrics.fRatio             	= [metrics.fRatio;          metrics_i.fRatio];
+
+
             end
 
             metrics_all{i, j, k}           	= metrics;

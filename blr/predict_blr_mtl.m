@@ -5,7 +5,6 @@ function modelOutputs           	= predict_blr_mtl(rawData, model)
 %
 
 addpath '../utils';
-addpath(genpath('../PRoNTo_v.1.1_r740/machines/gpml/gpml-v3.1'));
 
 params                          = model.params;
 measurements                    = setdiff(fieldnames(rawData), {'subj_id', 'age', 'age_raw'});

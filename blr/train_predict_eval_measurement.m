@@ -2,9 +2,6 @@ function [modelOutput, modelData] = train_predict_eval_measurement(rawData, mode
 
 
 addpath '../utils';
-%addpath(genpath('../PRoNTo_v.1.1_r740/machines/gpml/gpml-v3.1'));
-addpath(genpath('../gpml-matlab-v4.0-2016-10-19/util'));
-
 
 if nargin < 4 
     testPoints                  = [];

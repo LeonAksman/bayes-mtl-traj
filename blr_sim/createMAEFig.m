@@ -1,6 +1,10 @@
-function createMAEFig(figureNum, loopVars, metrics_intercept, metrics_slope, model_names)
+function createMAEFig(figureNum, loopVars, metrics_intercept, metrics_slope, model_names_int, model_names_slope)
 
 addpath '../aboxplot';
+
+addpath '../subtightplot';
+subplot                         = @(m,n,p) subtightplot (m, n, p, [0.17 0.05], [0.15 0.05], [0.04 0.02]);
+
 
 %***********************************************
 % setup stuff
@@ -13,8 +17,8 @@ assert(nBiomarkerNoises == 1);
 
 %close all; 
 
-fontSize            = 25; %15
-fontRotation        = 60;
+fontSize            = 20; %25;
+fontRotation        = 50; %60;
 
 legendAll           = {};
 for i = 1:nObservationNoises
@@ -23,31 +27,19 @@ end
 
 %******************************************
 % top row - intercept coupled
-
-%*** add a '*' to indicate oracle models
-model_names_int     = model_names;
-model_names_int{4} 	= [model_names{4} '*'];
-model_names_int{5} 	= [model_names{5} '*'];
-
 figure(figureNum);
 
 for i = 1:4
     subplot(2,4,i);
     create_aboxplot(metrics_intercept{1, i, 1}.mae, model_names_int, fontRotation, fontSize);
-    title(['MAEs, \sigma_m = ' num2str(loopVars.observationNoises(i))]);
+    title(['log_1_0MAEs, \sigma_m = ' num2str(loopVars.observationNoises(i))]);
 end
 
 %*** bottom row - slope coupled
-
-%*** add a '*' to indicate oracle models
-model_names_slope    = model_names;
-model_names_slope{6} 	= [model_names{6} '*'];
-model_names_slope{7} 	= [model_names{7} '*'];
-
 for i = 1:4
     subplot(2,4,i+4);
     create_aboxplot(metrics_slope{1, i, 1}.mae,     model_names_slope, fontRotation, fontSize);
-  	title(['MAEs, \sigma_m = ' num2str(loopVars.observationNoises(i))]);
+  	title(['log_1_0MAEs, \sigma_m = ' num2str(loopVars.observationNoises(i))]);
 end
 
 %tightfigadv;

@@ -135,6 +135,14 @@ for i = 1:nBlocks
     coupling_i     	= alpha1 * eye(nTasks) + (alpha2/nTasks) * ones(nTasks); 
     for j = 1:nKernels
 
+%         if ~any(ismember(i, extraKernels(j).blocks))
+%             currPos             = currPos + numHyp_kernel(extraKernels);
+%             
+%         	dSigmas{end+1}      = [];
+%             dHypers{end+1}      = []; 
+%             continue;
+%         end        
+        
         mat_j                   = extraKernels(j).mat;
         type_j                  = extraKernels(j).type;
 
@@ -274,7 +282,11 @@ if nargin == 5
             dSigma_i 	= dSigmas{i};
             dHyper_i 	= dHypers{i};
                         
-
+%             if isempty(dSigma_i) && isempty(dHyper_i)
+%                 dnlZ(i+1) = 0;
+%                 continue;
+%             end            
+            
             switch VERSION
                 case 'chol'
                     invSigma_dSigma  	=  solve_chol(cholSigma, dSigma_i);
