@@ -4,7 +4,6 @@ function simple_example
 %
 addpath '../utils';
 addpath '../blr';
-addpath(genpath('../gpml-matlab-v4.0-2016-10-19'));
 
 %generate some trajectories for 200 subjects
 n_tasks                         = 200;
@@ -57,7 +56,7 @@ commonParams.f_train            = @train_mtl;
 commonParams.f_predict        	= @predict_mtl;
 commonParams.f_eval             = @eval_mtl;
 commonParams.f_blr              = @blr_mtl_mkl_inv_reindex;
-commonParams.f_optimizer      	= @minimize;
+commonParams.f_optimizer      	= @minimize_gpml;
 commonParams.maxeval            = -100;             %
 commonParams.standardize        = true;
 commonParams.kernelSubjectIds   = kernelSubjectIds;
