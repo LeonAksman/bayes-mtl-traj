@@ -1,4 +1,4 @@
-function [X, fX, i] = minimize(X, f, length, varargin)
+function [X, fX, i] = minimize_gpml(X, f, length, varargin)
 
 % Minimize a differentiable multivariate function using conjugate gradients.
 %
