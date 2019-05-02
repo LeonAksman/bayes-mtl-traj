@@ -63,9 +63,8 @@ else
 end
 
 % ******************** MTL Train
-assert(strcmp(func2str(params.f_blr), 'blr_mtl_mkl_inv')            || ...
-       strcmp(func2str(params.f_blr), 'blr_mtl_mkl_inv_reindex')    || ...
-       strcmp(func2str(params.f_blr), 'blr_mtl_mkl_inv_split'));
+validFns                    = {'blr_mtl_mkl_inv', 'blr_mtl_mkl_inv_reindex', 'blr_mtl_mkl_inv_split'};
+assert(ismember(func2str(params.f_blr), validFns));
 nHyp                        = 2 + (2 + numHyp_kernel(params.extraKernels)) * (P+1); 
 hyp                         = zeros(nHyp, 1);
 
@@ -75,7 +74,7 @@ paramsTraining.noiseMin     = 10e-6;
 passed                      = false;
 for i = 1:10
     try
-        [hyp, fX, numIters] = feval(f_optimizer, hyp, f_blr, maxeval, designMat_all, targets_all, paramsTraining, extraKernels);
+        [hyp, fX, i]       	= feval(f_optimizer, hyp, f_blr, maxeval, designMat_all, targets_all, paramsTraining, extraKernels);
         passed              = true;
     catch
         dispf('Model train failed with noiseMin parameter value: %f', paramsTraining.noiseMin);
@@ -90,16 +89,23 @@ assert(passed, 'Failed to train model after 10 increases of noise');
 % get negative log marginal likelihood of training data
 [nlZ, ~, post]          	= feval(f_blr, hyp, designMat_all, targets_all, paramsTraining, extraKernels);
 
+%save the unadjusted posterior variables, which may be
+%rescaled below by both target and design matrix related factors
+indep_unadjusted            = indep;
+post_unadjusted             = post;
+
 % ********************* Rescale back
  if params.normTargets   
-  	indep.m                 = rescale_coeffs(indep.m,   	stats_targets,  P);
+  	
+    %** OLS 
+    indep.m                 = rescale_mean(indep.m,   	stats_targets,  P);
     indep.invA              = indep.invA * (stats_targets.sDev^2);
-    %[indep.m, indep.invA] 	= rescale_meanCov(indep.m, indep.invA, stats_targets, P);
-    
-    post.m                  = rescale_coeffs(post.m,        stats_targets,  P);
+
+    %** MTL
+    post.m                  = rescale_mean(post.m,        stats_targets,  P);
     post.invA            	= post.invA * (stats_targets.sDev^2);     
     post.beta               = post.beta * 1/(stats_targets.sDev^2); %inverse of noise
-    %[post.m, post.invA]     = rescale_meanCov(post.m, post.invA, stats_targets, P);
+    
     
     %scale the alphas (covariance hyperparams)
     %post.alphas              = post.alphas * (stats_targets.sDev^2);    
@@ -113,6 +119,16 @@ indep.twoStd_neg         	= indep.m - 2 * sqrt(diag(indep.invA));
 post.twoStd_pos             = post.m  + 2 * sqrt(diag(post.invA));
 post.twoStd_neg             = post.m  - 2 * sqrt(diag(post.invA));
 
+% scale       = stats_design.std;
+% scale(1)    = 1;
+% %scaleCell   = repmat({diag(1./(scale.^2))}, n_tasks, 1);
+% scaleCell   = repmat({diag(1./(scale))}, n_tasks, 1);
+% scaleMat    = blkdiag(scaleCell{:});
+% post.invA   = scaleMat' * post.invA * scaleMat;
+
+%invSigma_scaled = post.invSigma * (stats_targets.sDev^2);
+%post.invA   = inv(post.beta * XtX + invSigma_scaled);
+
 %rescale back design matrix and coefficients
 if params.normDesignMatrix
     covAdjustment                       = ones(n_tasks * (P+1), 1);
@@ -120,6 +136,7 @@ if params.normDesignMatrix
     for i = 2:(P+1)
     	%****************** OLS
         int_update_i_indep            	= (indep.m(i:(P+1):end) * stats_design.mean(i))/stats_design.std(i);
+        
         %update intercepts
         indep.m(1:(P+1):end)          	= indep.m(1:(P+1):end) - int_update_i_indep;
         indep.twoStd_pos(1:(P+1):end)   = indep.twoStd_pos(1:(P+1):end) - int_update_i_indep;
@@ -132,6 +149,7 @@ if params.normDesignMatrix
         
         %****************** MTL
         int_update_i                    = (post.m(i:(P+1):end) * stats_design.mean(i))/stats_design.std(i);
+        
         %update intercepts
         post.m(1:(P+1):end)             = post.m(1:(P+1):end)           - int_update_i;  
         post.twoStd_pos(1:(P+1):end)    = post.twoStd_pos(1:(P+1):end)  - int_update_i;
@@ -142,18 +160,18 @@ if params.normDesignMatrix
         post.twoStd_pos(i:(P+1):end)  	= post.twoStd_pos(i:(P+1):end)	/ stats_design.std(i);
         post.twoStd_neg(i:(P+1):end)  	= post.twoStd_neg(i:(P+1):end)	/ stats_design.std(i);
 
-        %post.invA(i:(P+1):end)          = post.invA(i:(P+1):end)/(stats_design.std(i)^ 2); %alternative: *
-        covAdjustment(i:(P+1):end)       = 1/stats_design.std(i);  %1/(stats_design.std(i)^ 2);
+        covAdjustment(i:(P+1):end)       = 1/(stats_design.std(i));  %1/(stats_design.std(i).^2);
     end    
     covAdjustment_mat                   = covAdjustment * covAdjustment';
-    indep.invA                       	= indep.invA .* covAdjustment_mat;
+    indep.invA                          = indep.invA .* covAdjustment_mat;
     post.invA                           = post.invA  .* covAdjustment_mat;
     
 end
 
-%out.normStats               = stats_design;
-%out.indep_orig            	= indep_orig;  %pre-rescaling
-%out.post_orig               = post_orig;   %pre-rescaling
+out.stats_targets           = stats_targets;
+out.stats_design            = stats_design;
+out.indep_unadjusted      	= indep_unadjusted;
+out.post_unadjusted         = post_unadjusted;
 out.indep                   = indep;
 out.post                    = post;
 out.hyp                     = hyp;
@@ -168,48 +186,11 @@ function [trainOut, stats]              = standardize(trainIn)
 trainOut                                = (trainIn - stats.m)/stats.sDev;
 
 %*********************************************************
-function outVec                         = rescale_coeffs(inVec, stats, P)
+function outVec                         = rescale_mean(inVec, stats, P)
 
 outVec                                  = zeros(size(inVec));
 outVec(1:(P+1):end)                     = inVec(1:(P+1):end)	* stats.sDev + stats.m;
 for i = 2:(P+1)
     outVec(i:(P+1):end)                 = inVec(i:(P+1):end)    * stats.sDev;
 end
-
-%*********************************************************
-function [outMean, outCov]              = rescale_meanCov(inMean, inCov, stats, P)
-
-outMean                              	= zeros(size(inMean));
-outMean(1:(P+1):end)                 	= inMean(1:(P+1):end)	* stats.sDev + stats.m;
-
-covAdjustment                           = zeros(size(inMean));
-covAdjustment(1:(P+1):end)              = 1;
-for i = 2:(P+1)
-    outMean(i:(P+1):end)              	= inMean(i:(P+1):end)    * stats.sDev;
-    covAdjustment(i:(P+1):end)          = 1; %stats.sDev;
-end
-
-outCov                                  = inCov .* (covAdjustment*covAdjustment');
-
-%*********************************************************
-function [designMat_cell_out, stats_design]  = normalizeDesignMat(designMat_cell, P)
-
-designMat_vert                          = vertcat(designMat_cell{:});
-[stats_design.mean, stats_design.std]   = deal(mean(designMat_vert), std(designMat_vert));
-assert(unique(designMat_vert(:, 1)) == 1);
-
-for i = 2:(P+1)
-    designMat_vert(:, i)             	= (designMat_vert(:, i) - stats_design.mean(i)) ./ stats_design.std(i);
-end
-
-designMat_cell_out                      = designMat_cell;
-
-iTrain                                  = 1;
-for i = 1:size(designMat_cell,1)
-    nSamples_i                          = size(designMat_cell{i}, 1);
-    
-    designMat_cell_out{i}             	= designMat_vert((iTrain + (1:nSamples_i) - 1), :);
-    iTrain                              = iTrain + nSamples_i;
-end
-
 

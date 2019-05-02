@@ -1,3 +1,4 @@
+    
 function models                 = formModels(kernelSubjectIds, t, noisyBiomarker)
 
 if nargin < 3
@@ -166,5 +167,3 @@ models                      = [models; model];
 % model.params.f_predict   	= @predict_fsLME;
 % model.params.f_eval       	= @eval_fsLME;
 % models                      = [models; model];
-
-

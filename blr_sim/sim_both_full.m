@@ -3,18 +3,17 @@ function sim_both_full
 addpath '../utils';
 addpath '../blr';
 addpath(genpath('../freesurfer_lme/lme'));
+addpath(genpath('../gpml-matlab-v4.0-2016-10-19'));
 
 %form parameter structure
 loopVars.tasks                        	= 200;        	%number of tasks (number of subjects in multi-task trajectory modeling)   
 loopVars.observationNoises            	= [1 2 4 8];    %measurement noise standard deviation
 loopVars.biomarkerNoises             	= 1;            %biomarker noise standard deviation
-loopVars.numRngs                      	= 30;           %number of simulation runs, each a random sampling of trajectories
+loopVars.numRngs                      	= 30; %50;      %number of simulation runs, each a random sampling of trajectories
 loopVars.numTestSamples                 = 1;
 
-
-
-saveFile_int                            = '../out_blr_sim/int_full_new.mat';
-saveFile_slope                       	= '../out_blr_sim/slope_full_new.mat';
+saveFile_int                            = '../out_blr_sim/int_full_rerun.mat';
+saveFile_slope                       	= '../out_blr_sim/slope_full_rerun.mat';
 
 %loop building intercept coupled and slope coupled models over the chosen params
 [metrics_intercept, model_names_int,    loopVars]    = loopParams(loopVars, @generatePredictionStructure_intercepts, 'intercept',   saveFile_int);

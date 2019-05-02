@@ -44,6 +44,8 @@ t_vec                           = age_bl;               %repVec(age_bl,         
 biomarker_vec                   = couplingInfo_noisy;   %repVec(couplingInfo_noisy,    nTrain_vec);
 models                          = formModels(kernelSubjectIds, t_vec, biomarker_vec);
 
+%models = models(8); 
+
 %***** compute and plot
 for i = 1:length(models)
     dispf('**** running model: %s', models(i).name);

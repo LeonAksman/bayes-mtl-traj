@@ -31,9 +31,11 @@ function [varargout] = blr_mtl_mkl_inv_reindex(hyp, X, t, params, extraKernels, 
 %    [mu, s2, post]    = blr_mtl_mkl_inv(hyp, x, t, ..., xs);  % predictive mean and variance
 %
 % Written by L.Aksman based on code provided by A. Marquand
+%
+%
 if nargin<5 || nargin>6
-    disp('Usage: [nlZ dnlZ] = blr_mtl_mkl_flex(hyp, X, t, params, extraKernels);')
-    disp('   or: [mu  s2  ] = blr_mtl_mkl_flex(hyp, X, t, params, extraKernels, xs);')
+    disp('Usage: [nlZ dnlZ] = blr_mtl_mkl_inv_reindex(hyp, X, t, params, extraKernels);')
+    disp('   or: [mu  s2  ] = blr_mtl_mkl_inv_reindex(hyp, X, t, params, extraKernels, xs);')
     return
 end
 
@@ -135,14 +137,6 @@ for i = 1:nBlocks
     coupling_i     	= alpha1 * eye(nTasks) + (alpha2/nTasks) * ones(nTasks); 
     for j = 1:nKernels
 
-%         if ~any(ismember(i, extraKernels(j).blocks))
-%             currPos             = currPos + numHyp_kernel(extraKernels);
-%             
-%         	dSigmas{end+1}      = [];
-%             dHypers{end+1}      = []; 
-%             continue;
-%         end        
-        
         mat_j                   = extraKernels(j).mat;
         type_j                  = extraKernels(j).type;
 
@@ -282,11 +276,7 @@ if nargin == 5
             dSigma_i 	= dSigmas{i};
             dHyper_i 	= dHypers{i};
                         
-%             if isempty(dSigma_i) && isempty(dHyper_i)
-%                 dnlZ(i+1) = 0;
-%                 continue;
-%             end            
-            
+
             switch VERSION
                 case 'chol'
                     invSigma_dSigma  	=  solve_chol(cholSigma, dSigma_i);

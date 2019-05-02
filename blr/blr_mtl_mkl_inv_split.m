@@ -1,3 +1,4 @@
+%function [varargout] = blr_mtl_mkl_inv_split(hyp, X, t, nTasks, nBlocks, extraKernels, xs)
 function [varargout] = blr_mtl_mkl_inv_split(hyp, X, t, params, extraKernels, xs)
 
 % A Bayesian linear regression based approach to multi-task learning with multi-kernel based coupling.
@@ -13,13 +14,13 @@ function [varargout] = blr_mtl_mkl_inv_split(hyp, X, t, params, extraKernels, xs
 % ***************************************
 %
 % Fits a bayesian linear regression model, where the inputs are:
-%    hyp                : vector of hyperparmaters. hyp = [log(beta); log(alpha); logit(gamma)]
-%    X                  : N     x D                 data matrix
-%    t                  : N     x 1                 vector of targets across all tasks
-%    params.nTasks     	: number of tasks (e.g. subjects)
-%    params.numBlocks 	: the number of dimensions in each task's model, so that D = nTasks * numBlocks
-%    extraKernels       : a structure for the coupling kernels K in the prior
-%    xs                 : Ntest x (nTasks * nDims)  matrix of test cases
+%    hyp          : vector of hyperparmaters. hyp = [log(beta); log(alpha); logit(gamma)]
+%    X            : N     x D                 data matrix
+%    t            : N     x 1                 vector of targets across all tasks
+%    nTasks       : number of tasks (e.g. subjects)
+%    nBlocks    : the number of dimensions in each task's model, so that D = nTasks * nBlocks
+%    extraKernels : a structure for the coupling kernels K in the prior
+%    xs           : Ntest x (nTasks * nDims)  matrix of test cases
 % 
 %  where N = sum(N_i), N_i is number of targets per task
 %
@@ -29,10 +30,9 @@ function [varargout] = blr_mtl_mkl_inv_split(hyp, X, t, params, extraKernels, xs
 %    [mu, s2, post]    = blr_mtl_mkl_inv(hyp, x, t, ..., xs);  % predictive mean and variance
 %
 % Written by L.Aksman based on code provided by A. Marquand
-
 if nargin<5 || nargin>6
-    disp('Usage: [nlZ dnlZ] = blr_mtl_mkl_flex(hyp, X, t, params, extraKernels, xs);')
-    disp('   or: [mu  s2  ] = blr_mtl_mkl_flex(hyp, X, t, params, extraKernels, xs);')
+    disp('Usage: [nlZ dnlZ] = blr_mtl_mkl_inv_split(hyp, X, t, nTasks, nDimsPerTask, extraKernels);')
+    disp('   or: [mu  s2  ] = blr_mtl_mkl_inv_split(hyp, X, t, nTasks, nDimsPerTask, extraKernels, xs);')
     return
 end
 
@@ -53,14 +53,17 @@ end
 [N, D]              = size(X);
 [dSigmas, dHypers] 	= deal({});
 
+
 nTasks              = params.nTasks;
-numBlocks        	= params.nBlocks;
-
-assert(D == nTasks * numBlocks);
-
-
-NOISE_MIN           = 1e-6;
+nBlocks             = params.nBlocks;
+if isfield(params, 'noiseMin')
+    NOISE_MIN     	= params.noiseMin;
+else
+    NOISE_MIN     	= 1e-6;
+end
 NOISE_MIN_OUTLIER   = 1e-3; 
+
+assert(D == nTasks * nBlocks);
 
 %************* ASSUMPTION: all hyperparams are > 0, so we optimize log(hyp), which can vary between -Inf to Inf
 exp_hyps            = exp(hyp);
@@ -69,7 +72,7 @@ beta                = exp_hyps(1);
 
 %******* added
 alpha_diag          = exp_hyps(2) + NOISE_MIN; 
-dSigmas{end+1}      = kron(eye(nTasks), eye(numBlocks)); 
+dSigmas{end+1}      = kron(eye(nTasks), eye(nBlocks)); 
 dHypers{end+1}      = exp_hyps(2); 
 
 
@@ -79,9 +82,9 @@ currPos             = 2;
 %numHypsPerBlock     = 2 + nKernels + numInternalHypers;
 
 
-Sigma               = alpha_diag * kron(eye(nTasks), eye(numBlocks)); %zeros(D, D);
+Sigma               = alpha_diag * kron(eye(nTasks), eye(nBlocks)); %zeros(D, D);
 
-for i = 1:numBlocks
+for i = 1:nBlocks
     
     currPos         = currPos + 1;
     alpha1          = exp_hyps(currPos);    %conditional(~isempty(extraKernels) && ~any(ismember(i, extraKernels(1).blocks)), 0, exp_hyps(currPos)); %
@@ -90,7 +93,7 @@ for i = 1:numBlocks
     alpha2          = exp_hyps(currPos);    %conditional(~isempty(extraKernels) && ~any(ismember(i, extraKernels(1).blocks)), 0, exp_hyps(currPos));
 
     
- 	v_i          	= zeros(numBlocks, 1);
+ 	v_i          	= zeros(nBlocks, 1);
     v_i(i)        	= 1;
     delta_i       	= v_i * v_i';
     
@@ -163,7 +166,7 @@ end
 if nKernels > 0 && any(strcmp({extraKernels.type}, 'outlier'))
     index_outlier             	= find(strcmp({extraKernels.type}, 'outlier'));
     if ~isempty(index_outlier)
-        Sigma                 	= Sigma + NOISE_MIN_OUTLIER * kron(extraKernels(index_outlier).mat, eye(numBlocks));
+        Sigma                 	= Sigma + NOISE_MIN_OUTLIER * kron(extraKernels(index_outlier).mat, eye(nBlocks));
     end
 end
 %*************************************************************************
@@ -265,9 +268,9 @@ if nargin == 5
                            0.5*m'*F*m - 0.5*trace(invA * F) ) * dHyper_i;         
             
         end   
-
-        post.beta 	= beta;
+        
         post.m      = m;
+        post.beta  	= beta;       
         post.invA   = invA;
     end
     if nargout > 1
@@ -299,7 +302,9 @@ else % prediction mode
     else
         s2        	= 1/beta + diag(xs*(invA * xs'));
     end
+    
     post.m          = m;
+    post.beta       = beta; 
     post.invA       = invA;
     varargout       = {ys, s2, post};
 end
